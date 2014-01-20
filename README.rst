@@ -18,11 +18,13 @@ Fastly
       <Module "collectd_cdn.fastly">
         ApiKey "68b329da9893e34099c7d8ad5cb9c940"
 
-        <Service "www">
+        <Service>
+          Name "www"
           Id "6IqS8vK4QRMAlb1ByyjrJF"
         </Service>
-        <Service "assets">
-          Id "qd8G3pOP2nGw0UlSE04t8v
+        <Service>
+          Name "assets"
+          Id "qd8G3pOP2nGw0UlSE04t8v"
         </Service>
       </Module>
     </Plugin>

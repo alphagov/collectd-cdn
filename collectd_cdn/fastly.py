@@ -48,10 +48,17 @@ class CdnFastly(object):
             elif node.key == 'DelayMins':
                 self.delay_mins = int(node.values[0])
             elif node.key == 'Service':
-                if node.children[0].key == 'Id':
-                    self.services[node.values[0]] = node.children[0].values[0]
-                else:
-                    self._warn("Unknown config key: %s" % node.children[0].key)
+                s_name, s_id = (None, None)
+                for s_node in node.children:
+                    if s_node.key == 'Name':
+                        s_name = s_node.values[0]
+                    elif s_node.key == 'Id':
+                        s_id = s_node.values[0]
+                    else:
+                        self._warn("Unknown config key: %s" % node.key)
+                if not (s_name and s_id):
+                    self._raise("Invalid 'Service' config")
+                self.services[s_name] = s_id
             else:
                 self._warn("Unknown config key: %s" % node.key)
 
