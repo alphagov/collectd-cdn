@@ -1,5 +1,5 @@
 from nose.tools import *
-from mock import MagicMock, patch
+from mock import MagicMock, patch, call
 
 import os
 

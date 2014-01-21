@@ -1,6 +1,7 @@
 from ..helpers import *
 
 import json
+import copy
 import datetime
 
 class TestFastly(object):
@@ -160,3 +161,54 @@ class TestRequest(TestFastly):
         resp_json = self.fastly.request('abc123', t_from, t_to)
 
         assert_equal(resp_json, fixture_data)
+
+
+class TestRead(TestFastly):
+    @patch('collectd_cdn.fastly.CdnFastly.get_time_range')
+    @patch('collectd_cdn.fastly.CdnFastly.request')
+    @patch('collectd_cdn.fastly.CdnFastly.submit')
+    @patch('collectd_cdn.fastly.collectd.warning')
+    def test_three_services_one_error(self, warn_mock, submit_mock, req_mock, range_mock):
+        config = CollectdConfig('root', (), (
+            ('ApiKey', 'abc123', ()),
+            ('Service', (), (
+                ('Name', 'one', ()),
+                ('Id', '111', ()),
+            )),
+            ('Service', (), (
+                ('Name', 'two', ()),
+                ('Id', '222', ()),
+            )),
+            ('Service', (), (
+                ('Name', 'three', ()),
+                ('Id', '333', ()),
+            )),
+        ))
+        self.fastly.config(config)
+
+        range_mock.return_value = (1390320360, 1390320420)
+        fixture_data = json.loads(fixture('simple_service.json'))
+        req_mock.side_effect = [
+            copy.deepcopy(fixture_data),
+            ValueError("No JSON object could be decoded"),
+            copy.deepcopy(fixture_data),
+        ]
+
+        self.fastly.read()
+
+        req_calls = [
+            call('111', *range_mock),
+            call('222', *range_mock),
+            call('333', *range_mock),
+        ]
+        submit_calls = [
+            call('three', 'hits', 'requests', 777, 1390320360),
+            call('three', 'hits_time', 'response_time', 3.5722524239999993, 1390320360),
+            call('one', 'hits', 'requests', 777, 1390320360),
+            call('one', 'hits_time', 'response_time', 3.5722524239999993, 1390320360),
+        ]
+
+        assert_equal(req_mock.call_count, len(req_calls))
+        submit_mock.assert_has_calls(submit_calls)
+        assert_equal(submit_mock.call_count, len(submit_calls))
+        warn_mock.assert_called_with("cdn_fastly plugin: Failed to query service: two")
