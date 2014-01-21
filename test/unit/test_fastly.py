@@ -35,3 +35,31 @@ class TestFastly(object):
             'one': '111',
             'two': '222',
         })
+
+    def test_config_no_apikey(self):
+        config = CollectdConfig('root', (), (
+            ('Service', (), (
+                ('Name', 'one', ()),
+                ('Id', '111', ()),
+            )),
+        ))
+        assert_raises(Exception, self.fastly.config, config)
+
+    def test_config_no_services(self):
+        config = CollectdConfig('root', (), (
+            ('ApiKey', 'abc123', ()),
+        ))
+        assert_raises(Exception, self.fastly.config, config)
+
+    @patch('collectd_cdn.fastly.collectd.warning')
+    def test_config_unknown_key(self, warning_mock):
+        config = CollectdConfig('root', (), (
+            ('Zebra', 'stripes', ()),
+            ('ApiKey', 'abc123', ()),
+            ('Service', (), (
+                ('Name', 'one', ()),
+                ('Id', '111', ()),
+            )),
+        ))
+        self.fastly.config(config)
+        warning_mock.assert_called_with("cdn_fastly plugin: Unknown config key: Zebra")
