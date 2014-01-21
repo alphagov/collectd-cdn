@@ -1,5 +1,7 @@
 from ..helpers import *
 
+import datetime
+
 class TestFastly(object):
     def setup(self):
         self.collectd = MagicMock()
@@ -89,3 +91,35 @@ class TestScaleAndType(TestFastly):
         # FIXME: Should be float 185879.93333333332 ?
         assert_equal(v, 185879)
         assert_equal(t, 'requests')
+
+
+class TestGetTimeRange(TestFastly):
+    @patch('collectd_cdn.fastly.CdnFastly._now')
+    def test_delay(self, now_mock):
+        config = CollectdConfig('root', (), (
+            ('ApiKey', 'abc123', ()),
+            ('DelayMins', '30', ()),
+            ('Service', (), (
+                ('Name', 'one', ()),
+                ('Id', '111', ()),
+            )),
+        ))
+        self.fastly.config(config)
+
+        now_mock.return_value = datetime.datetime(2014, 2, 1, 12, 30, 0, 0)
+        t_from, t_to = self.fastly.get_time_range()
+        t_to = datetime.datetime.fromtimestamp(t_to)
+        t_from = datetime.datetime.fromtimestamp(t_from)
+
+        assert_equal(t_to, datetime.datetime(2014, 2, 1, 12, 0, 0, 0))
+        assert_equal(t_from, datetime.datetime(2014, 2, 1, 11, 59, 0, 0))
+
+    @patch('collectd_cdn.fastly.CdnFastly._now')
+    def test_round_down(self, now_mock):
+        now_mock.return_value = datetime.datetime(2014, 2, 1, 12, 13, 14, 15)
+        t_from, t_to = self.fastly.get_time_range()
+        t_to = datetime.datetime.fromtimestamp(t_to)
+        t_from = datetime.datetime.fromtimestamp(t_from)
+
+        assert_equal(t_to, datetime.datetime(2014, 2, 1, 12, 3, 0, 0))
+        assert_equal(t_from, datetime.datetime(2014, 2, 1, 12, 2, 0, 0))
