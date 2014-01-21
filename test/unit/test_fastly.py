@@ -1,5 +1,6 @@
 from ..helpers import *
 
+import json
 import datetime
 
 class TestFastly(object):
@@ -123,3 +124,39 @@ class TestGetTimeRange(TestFastly):
 
         assert_equal(t_to, datetime.datetime(2014, 2, 1, 12, 3, 0, 0))
         assert_equal(t_from, datetime.datetime(2014, 2, 1, 12, 2, 0, 0))
+
+
+class TestRequest(TestFastly):
+    @patch('collectd_cdn.fastly.httplib.HTTPSConnection.getresponse')
+    @patch('collectd_cdn.fastly.httplib.HTTPSConnection.request')
+    def test_request(self, req_mock, resp_mock):
+        config = CollectdConfig('root', (), (
+            ('ApiKey', 'abc123', ()),
+            ('Service', (), (
+                ('Name', 'one', ()),
+                ('Id', '111', ()),
+            )),
+        ))
+        self.fastly.config(config)
+
+        req_mock.return_value = True
+        resp_mock.return_value.read.return_value = '{"data": {}}'
+        self.fastly.request('111', 1390320360, 1390320420)
+
+        req_mock.assert_called_with(
+            'GET',
+            '/stats/service/111?to=1390320420&from=1390320360&by=minute',
+            headers={'Fastly-Key': 'abc123'}
+        )
+
+    @patch('collectd_cdn.fastly.httplib.HTTPSConnection.getresponse')
+    @patch('collectd_cdn.fastly.httplib.HTTPSConnection.request')
+    def test_response_json(self, req_mock, resp_mock):
+        fixture_json = fixture('api_response.json')
+        fixture_data = json.loads(fixture_json)['data']
+        resp_mock.return_value.read.return_value = fixture_json
+
+        t_from, t_to = self.fastly.get_time_range()
+        resp_json = self.fastly.request('abc123', t_from, t_to)
+
+        assert_equal(resp_json, fixture_data)

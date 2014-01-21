@@ -1,6 +1,13 @@
 from nose.tools import *
 from mock import MagicMock, patch
 
+import os
+
+HERE = os.path.dirname(__file__)
+
+def fixture(name):
+    return open(os.path.join(HERE, 'fixtures', name)).read()
+
 class CollectdConfig(object):
     """
     Quacks like collectd Config object.

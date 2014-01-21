@@ -1,0 +1,41 @@
+{
+    "data": [
+        {
+            "bandwidth": 872148165, 
+            "body_size": 843739691, 
+            "errors": 0, 
+            "header_size": 28408474, 
+            "hit_ratio": "0.9897E0", 
+            "hits": 46657, 
+            "hits_time": 3.5722524239999993, 
+            "miss": 486, 
+            "miss_time": 195.80579945499997, 
+            "pass": 0, 
+            "pipe": 0, 
+            "requests": 47615, 
+            "service_id": "111",
+            "start_time": 1390320360, 
+            "status_1xx": 0, 
+            "status_200": 45901, 
+            "status_204": 0, 
+            "status_2xx": 45901, 
+            "status_301": 0, 
+            "status_302": 29, 
+            "status_304": 1653, 
+            "status_3xx": 1682, 
+            "status_4xx": 32, 
+            "status_503": 0, 
+            "status_5xx": 0, 
+            "synth": 0, 
+            "uncacheable": 0
+        }
+    ], 
+    "meta": {
+        "by": "minute", 
+        "from": "2014-01-21 16:06:00 UTC", 
+        "region": "all", 
+        "to": "2014-01-21 16:07:00 UTC"
+    }, 
+    "msg": null, 
+    "status": "success"
+}
