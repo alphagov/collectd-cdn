@@ -65,7 +65,7 @@ class CdnFastly(object):
         if not self.api_key:
             self._raise("No ApiKey configured")
 
-        if self.services < 0:
+        if len(self.services) < 1:
             self._raise("No Service blocks configured")
 
     def read(self):
