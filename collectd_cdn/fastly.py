@@ -36,6 +36,9 @@ class CdnFastly(object):
     def _raise(self, message):
         raise Exception("cdn_fastly plugin: %s" % message)
 
+    def _now(self):
+        return datetime.datetime.now()
+
     def config(self, conf):
         """
         Configure the plugin.
@@ -125,7 +128,7 @@ class CdnFastly(object):
         """
         # Timestamp rounded down to the minute.
         now = calendar.timegm(
-            datetime.datetime.now().replace(
+            self._now().replace(
                 second=0, microsecond=0
             ).utctimetuple()
         )
