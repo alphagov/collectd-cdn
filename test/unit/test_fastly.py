@@ -65,3 +65,27 @@ class TestConfig(TestFastly):
         ))
         self.fastly.config(config)
         warning_mock.assert_called_with("cdn_fastly plugin: Unknown config key: Zebra")
+
+
+class TestScaleAndType(TestFastly):
+    def test_time(self):
+        v, t = self.fastly.scale_and_type('hits_time', 946.1020896459992)
+        assert_equal(v, 946.1020896459992)
+        assert_equal(t, 'response_time')
+
+    def test_ratio(self):
+        v, t = self.fastly.scale_and_type('hit_ratio', '0.9836E0')
+        assert_equal(v, 0.9836)
+        assert_equal(t, 'cache_ratio')
+
+    def test_size(self):
+        v, t = self.fastly.scale_and_type('body_size', 219004331934)
+        # FIXME: Should be float 3650072198.9 ?
+        assert_equal(v, 3650072198)
+        assert_equal(t, 'bytes')
+
+    def test_other(self):
+        v, t = self.fastly.scale_and_type('status_2xx', 11152796)
+        # FIXME: Should be float 185879.93333333332 ?
+        assert_equal(v, 185879)
+        assert_equal(t, 'requests')
