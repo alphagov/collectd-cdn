@@ -42,6 +42,27 @@ class TestConfig(TestFastly):
             'two': '222',
         })
 
+    def test_service_reconfig(self):
+        config = CollectdConfig('root', (), (
+            ('ApiKey', 'abc123', ()),
+            ('Service', (), (
+                ('Name', 'one', ()),
+                ('Id', '111', ()),
+            )),
+        ))
+        self.fastly.config(config)
+        assert_equal(self.fastly.services, { 'one': '111' })
+
+        config = CollectdConfig('root', (), (
+            ('ApiKey', 'abc123', ()),
+            ('Service', (), (
+                ('Name', 'two', ()),
+                ('Id', '222', ()),
+            )),
+        ))
+        self.fastly.config(config)
+        assert_equal(self.fastly.services, { 'two': '222' })
+
     def test_no_apikey(self):
         config = CollectdConfig('root', (), (
             ('Service', (), (

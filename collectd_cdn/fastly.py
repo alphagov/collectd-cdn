@@ -43,6 +43,9 @@ class CdnFastly(object):
         """
         Configure the plugin.
         """
+        # Reset any previously configured services.
+        self.services = {}
+
         for node in conf.children:
             if node.key == 'ApiKey':
                 self.api_key = node.values[0]
