@@ -18,11 +18,11 @@ class TestFastly(object):
 
 
 class TestConfig(TestFastly):
-    def test_all_valid_options(self):
+    def test_all_valid_ints_as_strings(self):
         config = CollectdConfig('root', (), (
             ('ApiKey', 'abc123', ()),
-            ('ApiTimeout', 13, ()),
-            ('DelayMins', 17, ()),
+            ('ApiTimeout', '13', ()),
+            ('DelayMins', '17', ()),
             ('Service', (), (
                 ('Name', 'one', ()),
                 ('Id', '111', ()),
@@ -121,7 +121,7 @@ class TestGetTimeRange(TestFastly):
     def test_delay(self, now_mock):
         config = CollectdConfig('root', (), (
             ('ApiKey', 'abc123', ()),
-            ('DelayMins', '30', ()),
+            ('DelayMins', 30, ()),
             ('Service', (), (
                 ('Name', 'one', ()),
                 ('Id', '111', ()),

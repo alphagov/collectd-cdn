@@ -50,7 +50,7 @@ class CdnFastly(object):
             if node.key == 'ApiKey':
                 self.api_key = node.values[0]
             elif node.key == 'ApiTimeout':
-                self.api_timeout = node.values[0]
+                self.api_timeout = int(node.values[0])
             elif node.key == 'DelayMins':
                 self.delay_mins = int(node.values[0])
             elif node.key == 'Service':
