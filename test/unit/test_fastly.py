@@ -119,15 +119,7 @@ class TestScaleAndType(TestFastly):
 class TestGetTimeRange(TestFastly):
     @patch('collectd_cdn.fastly.CdnFastly._now')
     def test_delay(self, now_mock):
-        config = CollectdConfig('root', (), (
-            ('ApiKey', 'abc123', ()),
-            ('DelayMins', 30, ()),
-            ('Service', (), (
-                ('Name', 'one', ()),
-                ('Id', '111', ()),
-            )),
-        ))
-        self.fastly.config(config)
+        self.fastly.delay_mins = 30
 
         now_mock.return_value = datetime.datetime(2014, 2, 1, 12, 30, 0, 0)
         t_from, t_to = self.fastly.get_time_range()
@@ -152,14 +144,7 @@ class TestRequest(TestFastly):
     @patch('collectd_cdn.fastly.httplib.HTTPSConnection.getresponse')
     @patch('collectd_cdn.fastly.httplib.HTTPSConnection.request')
     def test_request(self, req_mock, resp_mock):
-        config = CollectdConfig('root', (), (
-            ('ApiKey', 'abc123', ()),
-            ('Service', (), (
-                ('Name', 'one', ()),
-                ('Id', '111', ()),
-            )),
-        ))
-        self.fastly.config(config)
+        self.fastly.api_key = 'abc123'
 
         req_mock.return_value = True
         resp_mock.return_value.read.return_value = '{"data": {}}'
@@ -190,22 +175,11 @@ class TestRead(TestFastly):
     @patch('collectd_cdn.fastly.CdnFastly.submit')
     @patch('collectd_cdn.fastly.collectd.warning')
     def test_three_services_one_error(self, warn_mock, submit_mock, req_mock, range_mock):
-        config = CollectdConfig('root', (), (
-            ('ApiKey', 'abc123', ()),
-            ('Service', (), (
-                ('Name', 'one', ()),
-                ('Id', '111', ()),
-            )),
-            ('Service', (), (
-                ('Name', 'two', ()),
-                ('Id', '222', ()),
-            )),
-            ('Service', (), (
-                ('Name', 'three', ()),
-                ('Id', '333', ()),
-            )),
-        ))
-        self.fastly.config(config)
+        self.fastly.services = {
+            'one': '111',
+            'two': '222',
+            'three': '333',
+        }
 
         range_mock.return_value = (1390320360, 1390320420)
         fixture_data = json.loads(fixture('simple_service.json'))
