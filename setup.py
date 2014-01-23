@@ -18,7 +18,7 @@ setup(
     author='Dan Carley',
     author_email='dan.carley@gmail.com',
     maintainer='Government Digital Service',
-    url='https://github.com/alphagov/collectd-cdn',
+    url='https://github.com/gds-operations/collectd-cdn',
 
     description='CDN stats plugin for collectd',
     long_description=long_description,
