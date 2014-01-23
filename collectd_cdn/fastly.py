@@ -36,29 +36,42 @@ class CdnFastly(object):
     def _raise(self, message):
         raise Exception("cdn_fastly plugin: %s" % message)
 
+    def _now(self):
+        return datetime.datetime.now()
+
     def config(self, conf):
         """
         Configure the plugin.
         """
+        # Reset any previously configured services.
+        self.services = {}
+
         for node in conf.children:
             if node.key == 'ApiKey':
                 self.api_key = node.values[0]
             elif node.key == 'ApiTimeout':
-                self.api_timeout = node.values[0]
+                self.api_timeout = int(node.values[0])
             elif node.key == 'DelayMins':
                 self.delay_mins = int(node.values[0])
             elif node.key == 'Service':
-                if node.children[0].key == 'Id':
-                    self.services[node.values[0]] = node.children[0].values[0]
-                else:
-                    self._warn("Unknown config key: %s" % node.children[0].key)
+                s_name, s_id = (None, None)
+                for s_node in node.children:
+                    if s_node.key == 'Name':
+                        s_name = s_node.values[0]
+                    elif s_node.key == 'Id':
+                        s_id = s_node.values[0]
+                    else:
+                        self._warn("Unknown config key: %s" % node.key)
+                if not (s_name and s_id):
+                    self._raise("Invalid 'Service' config")
+                self.services[s_name] = s_id
             else:
                 self._warn("Unknown config key: %s" % node.key)
 
         if not self.api_key:
             self._raise("No ApiKey configured")
 
-        if self.services < 0:
+        if len(self.services) < 1:
             self._raise("No Service blocks configured")
 
     def read(self):
@@ -118,7 +131,7 @@ class CdnFastly(object):
         """
         # Timestamp rounded down to the minute.
         now = calendar.timegm(
-            datetime.datetime.now().replace(
+            self._now().replace(
                 second=0, microsecond=0
             ).utctimetuple()
         )
