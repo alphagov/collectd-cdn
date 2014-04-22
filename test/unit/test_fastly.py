@@ -276,6 +276,52 @@ class TestRequest(TestFastly):
         assert_equal(httpretty.last_request().headers.get('Cookie'), expected_cookie)
 
     @httpretty.activate
+    def test_request_user_pass_cookie_expiring_15secs(self):
+        short_cookie = fastly_cookie('short', 10)
+        long_cookie  = fastly_cookie('long', 30)
+
+        httpretty.register_uri(
+            httpretty.POST,
+            self.MOCK_LOGIN_URL,
+            responses=[
+                httpretty.Response(
+                    body='{"user": {}}', status=200,
+                    adding_headers={ 'Set-Cookie': short_cookie }),
+                httpretty.Response(
+                    body='{"user": {}}', status=200,
+                    adding_headers={ 'Set-Cookie': long_cookie }),
+                httpretty.Response(
+                    body='should not be called',
+                    status=400),
+            ]
+        )
+        httpretty.register_uri(
+            httpretty.GET,
+            self.MOCK_STATS_URL,
+            body='{"data": {}}'
+        )
+
+        self.fastly.api_user = 'abc'
+        self.fastly.api_pass = '123'
+        self.fastly.request('mocked', 1, 2)
+        assert_equal(
+            httpretty.last_request().headers.get('Cookie'),
+            'fastly.session=short'
+        )
+
+        self.fastly.request('mocked', 3, 4)
+        assert_equal(
+            httpretty.last_request().headers.get('Cookie'),
+            'fastly.session=long'
+        )
+
+        self.fastly.request('mocked', 5, 6)
+        assert_equal(
+            httpretty.last_request().headers.get('Cookie'),
+            'fastly.session=long'
+        )
+
+    @httpretty.activate
     def test_response_json(self):
         fixture_json = fixture('api_response.json')
         fixture_data = json.loads(fixture_json)['data']

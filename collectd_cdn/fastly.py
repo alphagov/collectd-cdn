@@ -8,6 +8,7 @@ TODO:
 
 import collectd
 import json
+import time
 import requests
 import cookielib
 import datetime
@@ -23,6 +24,7 @@ class CdnFastly(object):
         self.LOGIN_URL = "https://api.fastly.com/login"
         self.STATS_URL = "https://api.fastly.com/stats/service/%(service_id)s"
         self.PLUGIN_NAME = "cdn_fastly"
+        self.COOKIE_EXPIRE = 15
 
         self.delay_mins = 10
         self.api_timeout = 5
