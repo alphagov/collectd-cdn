@@ -2,6 +2,7 @@ from nose.tools import *
 from mock import MagicMock, patch, call
 
 import os
+import httpretty
 
 HERE = os.path.dirname(__file__)
 

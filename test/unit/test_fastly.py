@@ -141,30 +141,40 @@ class TestGetTimeRange(TestFastly):
 
 
 class TestRequest(TestFastly):
-    @patch('collectd_cdn.fastly.httplib.HTTPSConnection.getresponse')
-    @patch('collectd_cdn.fastly.httplib.HTTPSConnection.request')
-    def test_request(self, req_mock, resp_mock):
-        self.fastly.api_key = 'abc123'
+    def __init__(self):
+        self.MOCK_STATS_URL = "https://api.fastly.com/stats/service/mocked"
 
-        req_mock.return_value = True
-        resp_mock.return_value.read.return_value = '{"data": {}}'
-        self.fastly.request('111', 1390320360, 1390320420)
-
-        req_mock.assert_called_with(
-            'GET',
-            '/stats/service/111?to=1390320420&from=1390320360&by=minute',
-            headers={'Fastly-Key': 'abc123'}
+    @httpretty.activate
+    def test_request(self):
+        httpretty.register_uri(
+            httpretty.GET,
+            self.MOCK_STATS_URL,
+            body='{"data": {}}'
         )
 
-    @patch('collectd_cdn.fastly.httplib.HTTPSConnection.getresponse')
-    @patch('collectd_cdn.fastly.httplib.HTTPSConnection.request')
-    def test_response_json(self, req_mock, resp_mock):
+        self.fastly.api_key = 'abc123'
+        self.fastly.request('mocked', 1390320360, 1390320420)
+
+        assert_equal(httpretty.last_request().querystring, {
+            'by': ['minute'],
+            'to': ['1390320420'],
+            'from': ['1390320360'],
+        })
+        assert_equal(httpretty.last_request().headers.get('Fastly-Key'), 'abc123')
+
+    @httpretty.activate
+    def test_response_json(self):
         fixture_json = fixture('api_response.json')
         fixture_data = json.loads(fixture_json)['data']
-        resp_mock.return_value.read.return_value = fixture_json
+
+        httpretty.register_uri(
+            httpretty.GET,
+            self.MOCK_STATS_URL,
+            body=fixture_json
+        )
 
         t_from, t_to = self.fastly.get_time_range()
-        resp_json = self.fastly.request('abc123', t_from, t_to)
+        resp_json = self.fastly.request('mocked', t_from, t_to)
 
         assert_equal(resp_json, fixture_data)
 
