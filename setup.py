@@ -13,6 +13,7 @@ setup(
     name='collectd-cdn',
     version=__version__,
     packages=find_packages(exclude=['test*']),
+    install_requires=['requests'],
 
     # metadata for upload to PyPI
     author='Dan Carley',

@@ -9,8 +9,7 @@ TODO:
 
 import collectd
 import json
-import httplib
-import urllib
+import requests
 import datetime
 import calendar
 
@@ -21,8 +20,7 @@ INTERVAL = 60
 
 class CdnFastly(object):
     def __init__(self):
-        self.API_HOST = "api.fastly.com"
-        self.API_URL = "/stats/service/%(service_id)s?%(params)s"
+        self.STATS_URL = "https://api.fastly.com/stats/service/%(service_id)s"
         self.PLUGIN_NAME = "cdn_fastly"
 
         self.delay_mins = 10
@@ -163,25 +161,26 @@ class CdnFastly(object):
         Requests stats from Fastly's API and return a dict of data. May
         contain multiple time periods.
         """
-        params = urllib.urlencode({
+        params = {
             'from': time_from,
             'to': time_to,
             'by': "minute",
-        })
-        url = self.API_URL % {
+        }
+        url = self.STATS_URL % {
             'service_id': service_id,
-            'params': params,
         }
         headers = {
             'Fastly-Key': self.api_key,
         }
 
-        conn = httplib.HTTPSConnection(self.API_HOST, timeout=self.api_timeout)
-        conn.request("GET", url, headers=headers)
+        resp = requests.get(
+            url,
+            params=params,
+            headers=headers,
+            timeout=self.api_timeout
+        )
 
-        resp = conn.getresponse().read()
-        data = json.loads(resp)['data']
-
+        data = resp.json()['data']
         return data
 
 cdn_fastly = CdnFastly()
