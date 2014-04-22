@@ -63,8 +63,81 @@ class TestConfig(TestFastly):
         self.fastly.config(config)
         assert_equal(self.fastly.services, { 'two': '222' })
 
-    def test_no_apikey(self):
+    def test_session_reconfig(self):
         config = CollectdConfig('root', (), (
+            ('ApiKey', 'abc123', ()),
+            ('Service', (), (
+                ('Name', 'one', ()),
+                ('Id', '111', ()),
+            )),
+        ))
+        self.fastly.config(config)
+        self.fastly.session.headers.update({'abc': 123})
+
+        assert_equal(self.fastly.session.headers.get('abc'), 123)
+        self.fastly.config(config)
+        assert_equal(self.fastly.session.headers.get('abc'), None)
+
+    def test_apikey(self):
+        config = CollectdConfig('root', (), (
+            ('ApiKey', 'abc123', ()),
+            ('Service', (), (
+                ('Name', 'one', ()),
+                ('Id', '111', ()),
+            )),
+        ))
+        self.fastly.config(config)
+
+        assert_equal(self.fastly.api_key, 'abc123')
+
+    def test_apiuser_and_apipass(self):
+        config = CollectdConfig('root', (), (
+            ('ApiUser', 'abc', ()),
+            ('ApiPass', '123', ()),
+            ('Service', (), (
+                ('Name', 'one', ()),
+                ('Id', '111', ()),
+            )),
+        ))
+        self.fastly.config(config)
+
+        assert_equal(self.fastly.api_user, 'abc')
+        assert_equal(self.fastly.api_pass, '123')
+
+    def test_apiuser_no_apipass(self):
+        config = CollectdConfig('root', (), (
+            ('ApiUser', 'abc', ()),
+            ('Service', (), (
+                ('Name', 'one', ()),
+                ('Id', '111', ()),
+            )),
+        ))
+        assert_raises(Exception, self.fastly.config, config)
+
+    def test_apipass_no_apiuser(self):
+        config = CollectdConfig('root', (), (
+            ('ApiPass', '123', ()),
+            ('Service', (), (
+                ('Name', 'one', ()),
+                ('Id', '111', ()),
+            )),
+        ))
+        assert_raises(Exception, self.fastly.config, config)
+
+    def test_no_credentials(self):
+        config = CollectdConfig('root', (), (
+            ('Service', (), (
+                ('Name', 'one', ()),
+                ('Id', '111', ()),
+            )),
+        ))
+        assert_raises(Exception, self.fastly.config, config)
+
+    def test_all_credentials(self):
+        config = CollectdConfig('root', (), (
+            ('ApiKey', 'abc123', ()),
+            ('ApiUser', 'abc', ()),
+            ('ApiPass', '123', ()),
             ('Service', (), (
                 ('Name', 'one', ()),
                 ('Id', '111', ()),
@@ -141,30 +214,142 @@ class TestGetTimeRange(TestFastly):
 
 
 class TestRequest(TestFastly):
-    @patch('collectd_cdn.fastly.httplib.HTTPSConnection.getresponse')
-    @patch('collectd_cdn.fastly.httplib.HTTPSConnection.request')
-    def test_request(self, req_mock, resp_mock):
-        self.fastly.api_key = 'abc123'
+    def __init__(self):
+        self.MOCK_LOGIN_URL = "https://api.fastly.com/login"
+        self.MOCK_STATS_URL = "https://api.fastly.com/stats/service/mocked"
 
-        req_mock.return_value = True
-        resp_mock.return_value.read.return_value = '{"data": {}}'
-        self.fastly.request('111', 1390320360, 1390320420)
-
-        req_mock.assert_called_with(
-            'GET',
-            '/stats/service/111?to=1390320420&from=1390320360&by=minute',
-            headers={'Fastly-Key': 'abc123'}
+    @httpretty.activate
+    def test_request_invalid_response(self):
+        httpretty.register_uri(
+            httpretty.GET,
+            self.MOCK_STATS_URL,
+            body='',
+            status=500
         )
 
-    @patch('collectd_cdn.fastly.httplib.HTTPSConnection.getresponse')
-    @patch('collectd_cdn.fastly.httplib.HTTPSConnection.request')
-    def test_response_json(self, req_mock, resp_mock):
+        assert_raises(Exception, self.fastly.request, 'mocked', 1, 2)
+
+    @httpretty.activate
+    def test_request_service_and_range(self):
+        httpretty.register_uri(
+            httpretty.GET,
+            self.MOCK_STATS_URL,
+            body='{"data": {}}'
+        )
+
+        self.fastly.api_key = 'abc123'
+        self.fastly.request('mocked', 1390320360, 1390320420)
+
+        assert_equal(httpretty.last_request().querystring, {
+            'by': ['minute'],
+            'to': ['1390320420'],
+            'from': ['1390320360'],
+        })
+
+    @httpretty.activate
+    def test_request_api_key(self):
+        httpretty.register_uri(
+            httpretty.GET,
+            self.MOCK_STATS_URL,
+            body='{"data": {}}'
+        )
+
+        self.fastly.api_key = 'abc123'
+        self.fastly.request('mocked', 1, 2)
+
+        assert_equal(httpretty.last_request().headers.get('Fastly-Key'), 'abc123')
+
+    @httpretty.activate
+    def test_request_user_pass_login_once(self):
+        cookie = fastly_cookie('just-one')
+        expected_cookie = 'fastly.session=just-one'
+
+        httpretty.register_uri(
+            httpretty.POST,
+            self.MOCK_LOGIN_URL,
+            responses=[
+                httpretty.Response(
+                    body='{"user": {}}', status=200,
+                    adding_headers={ 'Set-Cookie': cookie }),
+                httpretty.Response(
+                    body='should not be called',
+                    status=400),
+            ]
+        )
+        httpretty.register_uri(
+            httpretty.GET,
+            self.MOCK_STATS_URL,
+            body='{"data": {}}'
+        )
+
+        self.fastly.api_user = 'abc'
+        self.fastly.api_pass = '123'
+        self.fastly.request('mocked', 1, 2)
+        assert_equal(httpretty.last_request().headers.get('Cookie'), expected_cookie)
+
+        self.fastly.request('mocked', 3, 4)
+        assert_equal(httpretty.last_request().headers.get('Cookie'), expected_cookie)
+
+    @httpretty.activate
+    def test_request_user_pass_cookie_expiring_15secs(self):
+        short_cookie = fastly_cookie('short', 10)
+        long_cookie  = fastly_cookie('long', 30)
+
+        httpretty.register_uri(
+            httpretty.POST,
+            self.MOCK_LOGIN_URL,
+            responses=[
+                httpretty.Response(
+                    body='{"user": {}}', status=200,
+                    adding_headers={ 'Set-Cookie': short_cookie }),
+                httpretty.Response(
+                    body='{"user": {}}', status=200,
+                    adding_headers={ 'Set-Cookie': long_cookie }),
+                httpretty.Response(
+                    body='should not be called',
+                    status=400),
+            ]
+        )
+        httpretty.register_uri(
+            httpretty.GET,
+            self.MOCK_STATS_URL,
+            body='{"data": {}}'
+        )
+
+        self.fastly.api_user = 'abc'
+        self.fastly.api_pass = '123'
+        self.fastly.request('mocked', 1, 2)
+        assert_equal(
+            httpretty.last_request().headers.get('Cookie'),
+            'fastly.session=short'
+        )
+
+        self.fastly.request('mocked', 3, 4)
+        assert_equal(
+            httpretty.last_request().headers.get('Cookie'),
+            'fastly.session=long'
+        )
+
+        self.fastly.request('mocked', 5, 6)
+        assert_equal(
+            httpretty.last_request().headers.get('Cookie'),
+            'fastly.session=long'
+        )
+
+    @httpretty.activate
+    def test_response_json(self):
         fixture_json = fixture('api_response.json')
         fixture_data = json.loads(fixture_json)['data']
-        resp_mock.return_value.read.return_value = fixture_json
 
+        httpretty.register_uri(
+            httpretty.GET,
+            self.MOCK_STATS_URL,
+            body=fixture_json
+        )
+
+        self.fastly.api_key = 'abc123'
         t_from, t_to = self.fastly.get_time_range()
-        resp_json = self.fastly.request('abc123', t_from, t_to)
+        resp_json = self.fastly.request('mocked', t_from, t_to)
 
         assert_equal(resp_json, fixture_data)
 
