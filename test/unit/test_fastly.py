@@ -145,14 +145,13 @@ class TestRequest(TestFastly):
         self.MOCK_STATS_URL = "https://api.fastly.com/stats/service/mocked"
 
     @httpretty.activate
-    def test_request(self):
+    def test_request_service_and_range(self):
         httpretty.register_uri(
             httpretty.GET,
             self.MOCK_STATS_URL,
             body='{"data": {}}'
         )
 
-        self.fastly.api_key = 'abc123'
         self.fastly.request('mocked', 1390320360, 1390320420)
 
         assert_equal(httpretty.last_request().querystring, {
@@ -160,6 +159,18 @@ class TestRequest(TestFastly):
             'to': ['1390320420'],
             'from': ['1390320360'],
         })
+
+    @httpretty.activate
+    def test_request_api_key(self):
+        httpretty.register_uri(
+            httpretty.GET,
+            self.MOCK_STATS_URL,
+            body='{"data": {}}'
+        )
+
+        self.fastly.api_key = 'abc123'
+        self.fastly.request('mocked', 1, 2)
+
         assert_equal(httpretty.last_request().headers.get('Fastly-Key'), 'abc123')
 
     @httpretty.activate
