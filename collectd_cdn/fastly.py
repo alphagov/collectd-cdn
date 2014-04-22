@@ -3,13 +3,13 @@
 Read plugin for Fastly CDN stats.
 
 TODO:
-    - Authenticate with user/pass instead of global API key.
     - Track last query date so that we can fill in blanks?
 """
 
 import collectd
 import json
 import requests
+import cookielib
 import datetime
 import calendar
 
@@ -20,12 +20,16 @@ INTERVAL = 60
 
 class CdnFastly(object):
     def __init__(self):
+        self.LOGIN_URL = "https://api.fastly.com/login"
         self.STATS_URL = "https://api.fastly.com/stats/service/%(service_id)s"
         self.PLUGIN_NAME = "cdn_fastly"
 
         self.delay_mins = 10
         self.api_timeout = 5
         self.api_key = None
+        self.api_user = None
+        self.api_pass = None
+        self.session = requests.Session()
         self.services = {}
 
     def _warn(self, message):
@@ -47,6 +51,10 @@ class CdnFastly(object):
         for node in conf.children:
             if node.key == 'ApiKey':
                 self.api_key = node.values[0]
+            elif node.key == 'ApiUser':
+                self.api_user = node.values[0]
+            elif node.key == 'ApiPass':
+                self.api_pass = node.values[0]
             elif node.key == 'ApiTimeout':
                 self.api_timeout = int(node.values[0])
             elif node.key == 'DelayMins':
@@ -66,8 +74,11 @@ class CdnFastly(object):
             else:
                 self._warn("Unknown config key: %s" % node.key)
 
-        if not self.api_key:
-            self._raise("No ApiKey configured")
+        if not (self.api_key or (self.api_user and self.api_pass)):
+            self._raise("No ApiKey or ApiUser/ApiPass configured")
+
+        if (self.api_key and (self.api_user or self.api_pass)):
+            self._raise("ApiKey and ApiUser/ApiPass are mutually exclusive")
 
         if len(self.services) < 1:
             self._raise("No Service blocks configured")
@@ -156,6 +167,42 @@ class CdnFastly(object):
 
         v.dispatch()
 
+    def auth(self):
+        """
+        Setup authentication headers or cookies for the session.
+        """
+        if self.api_key:
+            self.session.headers.update({
+                'Fastly-Key': self.api_key,
+            })
+
+            return
+
+        if self.api_user and self.api_pass:
+            # Force a new cookie if it's going to expire soon.
+            valid_until = time.time() + self.COOKIE_EXPIRE
+            valid_cookies = [
+                c for c in self.session.cookies
+                if not c.is_expired(valid_until)
+            ]
+
+            if len(valid_cookies) < 1:
+                payload = {
+                    'user': self.api_user,
+                    'password': self.api_pass,
+                }
+                resp = self.session.post(
+                    self.LOGIN_URL,
+                    data=payload,
+                    timeout=self.api_timeout
+                )
+                if resp.status_code != 200:
+                    self._raise("Non-200 response from /login")
+
+            return
+
+        self._raise("No authentication methods configured")
+
     def request(self, service_id, time_from, time_to):
         """
         Requests stats from Fastly's API and return a dict of data. May
@@ -173,10 +220,10 @@ class CdnFastly(object):
             'Fastly-Key': self.api_key,
         }
 
-        resp = requests.get(
+        self.auth()
+        resp = self.session.get(
             url,
             params=params,
-            headers=headers,
             timeout=self.api_timeout
         )
         if resp.status_code != 200:

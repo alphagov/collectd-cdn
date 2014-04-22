@@ -44,6 +44,11 @@ To configure the plugin:
       Import "collectd_cdn.fastly"
 
       <Module "collectd_cdn.fastly">
+        # Authenticate using user/pass (recommended)
+        ApiUser "user@example.com"
+        ApiPass "password"
+
+        # OR using an API key
         ApiKey "68b329da9893e34099c7d8ad5cb9c940"
 
         <Service>
