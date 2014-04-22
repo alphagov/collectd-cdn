@@ -63,6 +63,21 @@ class TestConfig(TestFastly):
         self.fastly.config(config)
         assert_equal(self.fastly.services, { 'two': '222' })
 
+    def test_session_reconfig(self):
+        config = CollectdConfig('root', (), (
+            ('ApiKey', 'abc123', ()),
+            ('Service', (), (
+                ('Name', 'one', ()),
+                ('Id', '111', ()),
+            )),
+        ))
+        self.fastly.config(config)
+        self.fastly.session.headers.update({'abc': 123})
+
+        assert_equal(self.fastly.session.headers.get('abc'), 123)
+        self.fastly.config(config)
+        assert_equal(self.fastly.session.headers.get('abc'), None)
+
     def test_apikey(self):
         config = CollectdConfig('root', (), (
             ('ApiKey', 'abc123', ()),

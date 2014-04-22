@@ -49,6 +49,8 @@ class CdnFastly(object):
         """
         # Reset any previously configured services.
         self.services = {}
+        # Reset session (incl. authentication)
+        self.session = requests.Session()
 
         for node in conf.children:
             if node.key == 'ApiKey':
