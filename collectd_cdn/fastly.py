@@ -179,6 +179,8 @@ class CdnFastly(object):
             headers=headers,
             timeout=self.api_timeout
         )
+        if resp.status_code != 200:
+            self._raise("Non-200 response")
 
         data = resp.json()['data']
         return data

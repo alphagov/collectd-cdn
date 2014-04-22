@@ -145,6 +145,17 @@ class TestRequest(TestFastly):
         self.MOCK_STATS_URL = "https://api.fastly.com/stats/service/mocked"
 
     @httpretty.activate
+    def test_request_invalid_response(self):
+        httpretty.register_uri(
+            httpretty.GET,
+            self.MOCK_STATS_URL,
+            body='',
+            status=500
+        )
+
+        assert_raises(Exception, self.fastly.request, 'mocked', 1, 2)
+
+    @httpretty.activate
     def test_request_service_and_range(self):
         httpretty.register_uri(
             httpretty.GET,
