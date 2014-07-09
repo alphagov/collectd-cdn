@@ -13,6 +13,7 @@ import requests
 import cookielib
 import datetime
 import calendar
+import fastly
 
 # Must be rounded to 1min because that's the highest resolution that Fastly
 # provide data for. collectd will only call the plugin this often.
@@ -53,9 +54,7 @@ class CdnFastly(object):
         self.session = requests.Session()
 
         for node in conf.children:
-            if node.key == 'ApiKey':
-                self.api_key = node.values[0]
-            elif node.key == 'ApiUser':
+            if node.key == 'ApiUser':
                 self.api_user = node.values[0]
             elif node.key == 'ApiPass':
                 self.api_pass = node.values[0]
@@ -78,11 +77,11 @@ class CdnFastly(object):
             else:
                 self._warn("Unknown config key: %s" % node.key)
 
-        if not (self.api_key or (self.api_user and self.api_pass)):
-            self._raise("No ApiKey or ApiUser/ApiPass configured")
+        if not (self.api_user or self.api_pass):
+            self._raise("No username or password supplied")
 
         if (self.api_key and (self.api_user or self.api_pass)):
-            self._raise("ApiKey and ApiUser/ApiPass are mutually exclusive")
+            self._raise("API key auth is no longer supported. Use username and password.")
 
         if len(self.services) < 1:
             self._raise("No Service blocks configured")
@@ -175,12 +174,6 @@ class CdnFastly(object):
         """
         Setup authentication headers or cookies for the session.
         """
-        if self.api_key:
-            self.session.headers.update({
-                'Fastly-Key': self.api_key,
-            })
-
-            return
 
         if self.api_user and self.api_pass:
             # Force a new cookie if it's going to expire soon.
@@ -205,7 +198,13 @@ class CdnFastly(object):
 
             return
 
-        self._raise("No authentication methods configured")
+        if self.api_user:
+          self._raise("No username specified")
+        return
+
+        if self.api_password:
+          self._raise("No password specified")
+        return
 
     def request(self, service_id, time_from, time_to):
         """
