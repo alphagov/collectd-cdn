@@ -1,6 +1,9 @@
 collectd_cdn
 ============
 
+.. image:: https://travis-ci.org/gds-operations/collectd-cdn.svg?branch=master
+    :target: https://travis-ci.org/gds-operations/collectd-cdn
+
 A collectd plugin to fetch edge stats from CDN vendors. So that you can
 store and graph them to your heart's content.
 
