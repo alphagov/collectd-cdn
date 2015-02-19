@@ -1,3 +1,10 @@
+2014-07-09 Release 0.2.0
+- Use HTTPretty mock server for tests
+- Explicitly catch non-200 responses from the API
+- Support username/password authentication in addition to API key
+- Force a new cookie if the existing one expires within 15s
+- Drop existing cookie if new configuration is passed to the same object
+
 2014-01-23 Release 0.1.0
 - Public release to PyPI.
 - Add tests.
