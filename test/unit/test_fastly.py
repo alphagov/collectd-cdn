@@ -176,6 +176,11 @@ class TestScaleAndType(TestFastly):
         assert_equal(v, 0.9836)
         assert_equal(t, 'cache_ratio')
 
+    def test_ratio_null(self):
+        v, t = self.fastly.scale_and_type('hit_ratio', None)
+        assert_equal(v, 0.0)
+        assert_equal(t, 'cache_ratio')
+
     def test_size(self):
         v, t = self.fastly.scale_and_type('body_size', 219004331934)
         # FIXME: Should be float 3650072198.9 ?
