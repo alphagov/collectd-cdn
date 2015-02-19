@@ -1,3 +1,6 @@
+2015-02-19 Release 0.2.1
+- Bugfix: null values returned for hit_ratio should not error
+
 2014-07-09 Release 0.2.0
 - Use HTTPretty mock server for tests
 - Explicitly catch non-200 responses from the API

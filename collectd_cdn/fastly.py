@@ -119,6 +119,8 @@ class CdnFastly(object):
             vtype = 'response_time'
         elif key.endswith('_ratio'):
             vtype = 'cache_ratio'
+            if val == None:
+                val = 0
             val = float(val)
         elif key.endswith('_size') or key == 'bandwidth':
             vtype = 'bytes'
