@@ -124,10 +124,10 @@ class CdnFastly(object):
             val = float(val)
         elif key.endswith('_size') or key == 'bandwidth':
             vtype = 'bytes'
-            val = val / INTERVAL
+            val = val / float(INTERVAL)
         else:
             vtype = 'requests'
-            val = val / INTERVAL
+            val = val / float(INTERVAL)
 
         return val, vtype
 

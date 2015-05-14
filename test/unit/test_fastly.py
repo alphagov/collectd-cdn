@@ -183,14 +183,12 @@ class TestScaleAndType(TestFastly):
 
     def test_size(self):
         v, t = self.fastly.scale_and_type('body_size', 219004331934)
-        # FIXME: Should be float 3650072198.9 ?
-        assert_equal(v, 3650072198)
+        assert_equal(v, 3650072198.9)
         assert_equal(t, 'bytes')
 
     def test_other(self):
         v, t = self.fastly.scale_and_type('status_2xx', 11152796)
-        # FIXME: Should be float 185879.93333333332 ?
-        assert_equal(v, 185879)
+        assert_equal(v, 185879.93333333332)
         assert_equal(t, 'requests')
 
 
@@ -387,9 +385,9 @@ class TestRead(TestFastly):
             call('333', *range_mock),
         ]
         submit_calls = [
-            call('three', 'hits', 'requests', 777, 1390320360),
+            call('three', 'hits', 'requests', 777.6166666666667, 1390320360),
             call('three', 'hits_time', 'response_time', 3.5722524239999993, 1390320360),
-            call('one', 'hits', 'requests', 777, 1390320360),
+            call('one', 'hits', 'requests', 777.6166666666667, 1390320360),
             call('one', 'hits_time', 'response_time', 3.5722524239999993, 1390320360),
         ]
 
